@@ -26,13 +26,13 @@ export default function Header() {
     <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white/80 backdrop-blur border-b border-gray-200 px-6 py-3 sticky top-0 z-10 shadow-sm transition-all gap-3 sm:gap-0">
       {/* Левая часть */}
       <div className='flex items-center gap-4'>
-        <Image
+        {/* <Image
           src="/logo.png"
           alt="Logo"
-          width={230}
+          width={365}
           height={60}
           className="inline-block"
-        />
+        /> */}
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-semibold text-gray-800">
