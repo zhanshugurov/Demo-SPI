@@ -69,14 +69,35 @@ const initialCustomersMontreal: Customer[] = [
 const defaultWeekData: WeekData = {
   transferDrivers: 5,
   locations: {
-    toronto: { capacity: 121.13, drivers_total: 74, customers: initialCustomersToronto },
-    montreal: { capacity: 60.22, drivers_total: 20, customers: initialCustomersMontreal },
+    toronto: { capacity: 0, drivers_total: 0, customers: [] },
+    montreal: { capacity: 0, drivers_total: 0, customers: [] },
+  },
+  actuals: {
+    toronto: JSON.parse(JSON.stringify([])),
+    montreal: JSON.parse(JSON.stringify([])),
+  },
+};
+
+const initialWeek32: WeekData = {
+  transferDrivers: 5,
+  locations: {
+    toronto: {
+      capacity: 0,
+      drivers_total: 0,
+      customers: initialCustomersToronto,
+    },
+    montreal: {
+      capacity: 0,
+      drivers_total: 0,
+      customers: initialCustomersMontreal,
+    },
   },
   actuals: {
     toronto: JSON.parse(JSON.stringify(initialCustomersToronto)),
     montreal: JSON.parse(JSON.stringify(initialCustomersMontreal)),
   },
 };
+
 
 // ======================
 // Zustand Store
@@ -89,7 +110,7 @@ export const usePlanningStore = create<PlanningState>()(
       currentLocation: 'toronto',
 
       weeks: {
-        32: defaultWeekData,
+        32: initialWeek32,
       },
 
       setWeek: (week) => {
@@ -280,6 +301,6 @@ export const usePlanningStore = create<PlanningState>()(
         });
       },
     }),
-    { name: 'planning-data-v3' }
+    { name: 'planning-data-v3.2' }
   )
 );
