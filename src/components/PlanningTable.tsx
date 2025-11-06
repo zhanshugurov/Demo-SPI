@@ -151,7 +151,7 @@ export default function PlanningTable() {
             </tr>
 
             <tr
-              className={`font-semibold border-t ${overVol || overCapacity ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-800'
+              className={`font-semibold border-t ${overVol || initOverCapacity || overCapacity ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-800'
                 }`}
             >
               <td className="p-3">TOTALS</td>
