@@ -1,56 +1,58 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { usePlanningStore } from '@/store/usePlanningStore';
 
 export default function ActualsTable() {
-  const { currentLocation, locations } = usePlanningStore();
-  const plan = locations[currentLocation]?.customers ?? [];
+  const {
+    currentWeek,
+    currentLocation,
+    weeks,
+    setActuals,
+    updateActual,
+  } = usePlanningStore();
 
-  const [actuals, setActuals] = useState(() =>
-    plan.map((p) => ({ ...p }))
-  );
+  const weekData = weeks[currentWeek];
+  const plan = weekData?.locations?.[currentLocation]?.customers ?? [];
+  const actuals = weekData?.actuals?.[currentLocation] ?? [];
 
-  // Если в плане поменялась локация или данные — обновляем actuals
+  // Если нет actuals для этой недели и локации — инициализируем их планом
   useEffect(() => {
-    setActuals(plan.map((p) => ({ ...p })));
-  }, [plan]);
+    if (plan.length > 0 && (!weekData.actuals || !weekData.actuals[currentLocation])) {
+      setActuals(plan.map((p) => ({ ...p })));
+    }
+  }, [currentWeek, currentLocation, plan]);
 
-  const updateValue = (i: number, field: 'mon' | 'wed' | 'fri', value: number) => {
-    const updated = [...actuals];
-    updated[i][field] = value;
-    setActuals(updated);
+  const handleChange = (index: number, field: 'mon' | 'wed' | 'fri', value: number) => {
+    updateActual(index, field, value);
   };
 
-  const totals = actuals.reduce(
+  const totals = (actuals ?? []).reduce(
     (a, c) => ({
-      mon: a.mon + c.mon,
-      wed: a.wed + c.wed,
-      fri: a.fri + c.fri,
+      mon: a.mon + (c.mon || 0),
+      wed: a.wed + (c.wed || 0),
+      fri: a.fri + (c.fri || 0),
     }),
     { mon: 0, wed: 0, fri: 0 }
   );
 
-  const variances = actuals.map((a, i) => {
+  const variances = (actuals ?? []).map((a, i) => {
     const p = plan[i];
-    if (!p) return 0; // защита от undefined
-    const planTotal = p.mon + p.wed + p.fri;
-    const actTotal = a.mon + a.wed + a.fri;
+    if (!p) return 0;
+    const planTotal = (p.mon || 0) + (p.wed || 0) + (p.fri || 0);
+    const actTotal = (a.mon || 0) + (a.wed || 0) + (a.fri || 0);
     return actTotal - planTotal;
   });
 
   const totalVariance = variances.reduce((a, c) => a + c, 0);
 
-  // сохраняем данные в localStorage
-  useEffect(() => {
-    localStorage.setItem(`actuals-${currentLocation}`, JSON.stringify(actuals));
-  }, [actuals, currentLocation]);
-
-  useEffect(() => {
-    if (plan.length > 0) {
-      setActuals(plan.map((p) => ({ ...p })));
-    }
-  }, [plan]);
+  if (!plan.length) {
+    return (
+      <div className="mt-6 text-gray-500 italic">
+        No plan data available for this location/week.
+      </div>
+    );
+  }
 
   return (
     <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200 shadow-sm bg-white transition-all hover:shadow-md">
@@ -69,11 +71,9 @@ export default function ActualsTable() {
 
           <tbody>
             {actuals.map((c, i) => {
-              const total = c.mon + c.wed + c.fri;
-              const variance = variances[i];
-
+              const total = (c.mon || 0) + (c.wed || 0) + (c.fri || 0);
+              const variance = variances[i] ?? 0;
               const p = plan[i];
-              if (!p) return null;
 
               return (
                 <tr
@@ -88,10 +88,13 @@ export default function ActualsTable() {
                         type="number"
                         value={c[field]}
                         onChange={(e) =>
-                          updateValue(i, field, Number(e.target.value) || 0)
+                          handleChange(i, field, Number(e.target.value) || 0)
                         }
                         className={`w-20 text-right rounded-md border border-gray-200 bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none p-1.5 transition-all duration-200
-                          ${c[field] !== plan[i][field] ? 'bg-yellow-50 border-yellow-300' : ''}
+                          ${p && c[field] !== p[field]
+                            ? 'bg-yellow-50 border-yellow-300'
+                            : ''
+                          }
                         `}
                       />
                     </td>
@@ -102,10 +105,10 @@ export default function ActualsTable() {
                   </td>
                   <td
                     className={`p-3 text-right font-semibold transition-all duration-300 ${variance > 0
-                      ? 'text-green-600'
-                      : variance < 0
-                        ? 'text-red-500'
-                        : 'text-gray-500'
+                        ? 'text-green-600'
+                        : variance < 0
+                          ? 'text-red-500'
+                          : 'text-gray-500'
                       }`}
                   >
                     {variance >= 0 ? '+' : ''}
@@ -136,7 +139,7 @@ export default function ActualsTable() {
       </div>
 
       <div className="p-4 text-sm text-gray-500 italic bg-gray-50 border-t border-gray-100">
-        Actual values are initialized from plan — adjust only if actuals differ.
+        Actual values are stored per week and location — initialized from plan.
       </div>
     </div>
   );

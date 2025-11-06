@@ -7,19 +7,19 @@ import { usePlanningStore } from '@/store/usePlanningStore';
 
 export default function ActualsPage() {
   const {
-    week
+    currentWeek
   } = usePlanningStore();
 
   return (
-    <div className="p-4 max-w-5xl mx-auto space-y-4">
-      <Header week={week} />
+    <div className="p-4 mx-auto space-y-4">
+      <Header />
 
       <LocationSelector
 
       />
 
       <div className="text-sm text-gray-600">
-        Week: {week} | Date Range: Aug 2nd – Aug 9th | Status: In Progress
+        Week: {currentWeek} |  Status: In Progress
       </div>
 
       <ActualsTable />

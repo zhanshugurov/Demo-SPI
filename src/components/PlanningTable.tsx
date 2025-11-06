@@ -41,8 +41,10 @@ export default function PlanningTable() {
   // Валидации
   // =====================
   const overVol = totals.vol > 100;
+  const initOverCapacity =
+    totals.init > location.capacity;
   const overCapacity =
-    totals.init + totals.mon + totals.wed + totals.fri > location.capacity * 4;
+    totals.mon + totals.wed + totals.fri > location.capacity;
 
   // =====================
   // Добавление клиента
@@ -162,8 +164,25 @@ export default function PlanningTable() {
             </tr>
           </tbody>
         </table>
-      </div>
 
+        <div className="flex flex-col p-4 bg-gray-50 border-t border-gray-100">
+          {initOverCapacity && (
+            <div className="text-sm text-red-600 font-medium">
+              Warning: Initial deliveries exceed location capacity!
+            </div>
+          )}
+          {overCapacity && (
+            <div className="text-sm text-red-600 font-medium">
+              Warning: Total planned deliveries exceed location capacity!
+            </div>
+          )}
+          {overVol && (
+            <div className="text-sm text-red-600 font-medium">
+              Warning: Total Vol% exceeds 100%!
+            </div>
+          )}
+        </div>
+      </div>
       <div className="flex items-center justify-between p-4 bg-gray-50 border-t border-gray-100">
         <div className="text-sm text-gray-600">
           Capacity: {location.capacity} | Drivers: {location.drivers_total}
