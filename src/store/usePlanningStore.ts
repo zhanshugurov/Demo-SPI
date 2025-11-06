@@ -22,23 +22,28 @@ export interface LocationData {
   customers: Customer[];
 }
 
-interface PlanningState {
-  // Общие поля
-  week: number;
+export interface WeekData {
+  locations: Record<'toronto' | 'montreal', LocationData>;
+  transferDrivers: number;
+}
 
-  // Управление локациями
+interface PlanningState {
+  currentWeek: number;
+  setWeek: (week: number) => void;
+
   currentLocation: 'toronto' | 'montreal';
   setLocation: (loc: 'toronto' | 'montreal') => void;
 
-  // Данные по локациям
-  locations: Record<'toronto' | 'montreal', LocationData>;
+  weeks: Record<number, WeekData>;
 
-  // Перемещение водителей между локациями
-  transferDrivers: number;
-
-  // Обновление данных клиентов
+  // Методы
   setCustomers: (customers: Customer[]) => void;
-  updateValue: (index: number, field: keyof Customer, value: number) => void;
+  addCustomer: (customer: Customer) => void;
+  removeCustomer: (index: number) => void;
+  updateCustomer: (index: number, field: keyof Customer, value: string | number) => void;
+
+  updateDrivers: (value: number) => void;
+  updateCapacity: (value: number) => void;
 }
 
 // ======================
@@ -49,16 +54,20 @@ const initialCustomersToronto: Customer[] = [
   { name: 'MAERSK #1', vol: 29, init: 35, mon: 10, wed: 10, fri: 15 },
   { name: 'CMA #3', vol: 9, init: 11, mon: 4, wed: 4, fri: 3 },
   { name: 'HL #4', vol: 25, init: 30, mon: 10, wed: 10, fri: 10 },
-  { name: 'ZIM #2', vol: 5, init: 6, mon: 3, wed: 3, fri: 0 },
-  { name: 'MEDLOG #5', vol: 25, init: 30, mon: 10, wed: 10, fri: 10 },
-  { name: 'OTHER/SPOT #6', vol: 7, init: 9, mon: 0, wed: 0, fri: 9 },
 ];
 
 const initialCustomersMontreal: Customer[] = [
   { name: 'MSC #1', vol: 18, init: 22, mon: 6, wed: 6, fri: 10 },
   { name: 'EVERGREEN #2', vol: 7, init: 9, mon: 3, wed: 3, fri: 3 },
-  { name: 'COSCO #3', vol: 10, init: 12, mon: 4, wed: 4, fri: 4 },
 ];
+
+const defaultWeekData: WeekData = {
+  transferDrivers: 5,
+  locations: {
+    toronto: { capacity: 121.13, drivers_total: 74, customers: initialCustomersToronto },
+    montreal: { capacity: 60.22, drivers_total: 20, customers: initialCustomersMontreal },
+  },
+};
 
 // ======================
 // Zustand Store
@@ -67,52 +76,160 @@ const initialCustomersMontreal: Customer[] = [
 export const usePlanningStore = create<PlanningState>()(
   persist(
     (set, get) => ({
-      week: 32,
-
+      currentWeek: 32,
       currentLocation: 'toronto',
-      setLocation: (loc) => set({ currentLocation: loc }),
 
-      transferDrivers: 5,
-
-      locations: {
-        toronto: {
-          capacity: 121.13,
-          drivers_total: 74,
-          customers: initialCustomersToronto,
-        },
-        montreal: {
-          capacity: 60.22,
-          drivers_total: 20,
-          customers: initialCustomersMontreal,
-        },
+      weeks: {
+        32: defaultWeekData,
       },
 
+      setWeek: (week) => {
+        const { weeks } = get();
+        if (!weeks[week]) {
+          // если недели нет — создаём пустую копию
+          set({
+            currentWeek: week,
+            weeks: {
+              ...weeks,
+              [week]: JSON.parse(JSON.stringify(defaultWeekData)),
+            },
+          });
+        } else {
+          set({ currentWeek: week });
+        }
+      },
+
+      setLocation: (loc) => set({ currentLocation: loc }),
+
       setCustomers: (customers) => {
-        const { currentLocation, locations } = get();
+        const { currentWeek, currentLocation, weeks } = get();
+        const week = weeks[currentWeek];
         set({
-          locations: {
-            ...locations,
-            [currentLocation]: { ...locations[currentLocation], customers },
+          weeks: {
+            ...weeks,
+            [currentWeek]: {
+              ...week,
+              locations: {
+                ...week.locations,
+                [currentLocation]: {
+                  ...week.locations[currentLocation],
+                  customers,
+                },
+              },
+            },
           },
         });
       },
 
-      updateValue: (index, field, value) => {
-        const { currentLocation, locations } = get();
-        const current = locations[currentLocation];
-        const updatedCustomers = [...current.customers];
-        updatedCustomers[index] = { ...updatedCustomers[index], [field]: value };
-
+      addCustomer: (customer) => {
+        const { currentWeek, currentLocation, weeks } = get();
+        const week = weeks[currentWeek];
+        const customers = week.locations[currentLocation].customers;
         set({
-          locations: {
-            ...locations,
-            [currentLocation]: { ...current, customers: updatedCustomers },
+          weeks: {
+            ...weeks,
+            [currentWeek]: {
+              ...week,
+              locations: {
+                ...week.locations,
+                [currentLocation]: {
+                  ...week.locations[currentLocation],
+                  customers: [...customers, customer],
+                },
+              },
+            },
+          },
+        });
+      },
+
+      removeCustomer: (index) => {
+        const { currentWeek, currentLocation, weeks } = get();
+        const week = weeks[currentWeek];
+        const customers = week.locations[currentLocation].customers.filter((_, i) => i !== index);
+        set({
+          weeks: {
+            ...weeks,
+            [currentWeek]: {
+              ...week,
+              locations: {
+                ...week.locations,
+                [currentLocation]: {
+                  ...week.locations[currentLocation],
+                  customers,
+                },
+              },
+            },
+          },
+        });
+      },
+
+      updateCustomer: (index, field, value) => {
+        const { currentWeek, currentLocation, weeks } = get();
+        const week = weeks[currentWeek];
+        const updatedCustomers = [...week.locations[currentLocation].customers];
+        updatedCustomers[index] = {
+          ...updatedCustomers[index],
+          [field]: value,
+        };
+        set({
+          weeks: {
+            ...weeks,
+            [currentWeek]: {
+              ...week,
+              locations: {
+                ...week.locations,
+                [currentLocation]: {
+                  ...week.locations[currentLocation],
+                  customers: updatedCustomers,
+                },
+              },
+            },
+          },
+        });
+      },
+
+      updateDrivers: (value) => {
+        const { currentWeek, currentLocation, weeks } = get();
+        const week = weeks[currentWeek];
+        set({
+          weeks: {
+            ...weeks,
+            [currentWeek]: {
+              ...week,
+              locations: {
+                ...week.locations,
+                [currentLocation]: {
+                  ...week.locations[currentLocation],
+                  drivers_total: value,
+                },
+              },
+            },
+          },
+        });
+      },
+
+      updateCapacity: (value) => {
+        const { currentWeek, currentLocation, weeks } = get();
+        const week = weeks[currentWeek];
+        set({
+          weeks: {
+            ...weeks,
+            [currentWeek]: {
+              ...week,
+              locations: {
+                ...week.locations,
+                [currentLocation]: {
+                  ...week.locations[currentLocation],
+                  capacity: value,
+                },
+              },
+            },
           },
         });
       },
     }),
     {
-      name: 'planning-data',
+      name: 'planning-data-v2',
     }
   )
 );

@@ -2,46 +2,61 @@
 
 import { usePlanningStore } from '@/store/usePlanningStore';
 import { motion } from 'framer-motion';
+import { useMemo } from 'react';
 
 export default function LocationSelector() {
   const {
+    currentWeek,
     currentLocation,
     setLocation,
-    transferDrivers,
-    locations,
+    weeks,
+    updateCapacity,
+    updateDrivers,
   } = usePlanningStore();
 
+  const weekData = weeks[currentWeek];
+  const locations = weekData?.locations || {};
+  const locationData = locations[currentLocation];
   const otherLocation = currentLocation === 'toronto' ? 'montreal' : 'toronto';
 
-  // Обновляем store напрямую
+  // 🧮 Перемещение водителей
   const handleTransfer = () => {
     usePlanningStore.setState((state) => {
+      const week = state.weeks[state.currentWeek];
+      if (!week) return state;
+
       const from = state.currentLocation;
       const to = from === 'toronto' ? 'montreal' : 'toronto';
+      const transferCount = Math.min(week.transferDrivers, 5);
 
-      // Сколько можно перевести
-      const transferCount = Math.min(state.transferDrivers, 5);
-
-      // Обновляем количество водителей в обеих локациях
-      const updated = {
-        ...state.locations,
-        [from]: {
-          ...state.locations[from],
-          drivers_total: Math.max(0, state.locations[from].drivers_total - transferCount),
-        },
-        [to]: {
-          ...state.locations[to],
-          drivers_total: state.locations[to].drivers_total + transferCount,
+      const updatedWeek = {
+        ...week,
+        transferDrivers: Math.max(0, week.transferDrivers - transferCount),
+        locations: {
+          ...week.locations,
+          [from]: {
+            ...week.locations[from],
+            drivers_total: Math.max(0, week.locations[from].drivers_total - transferCount),
+          },
+          [to]: {
+            ...week.locations[to],
+            drivers_total: week.locations[to].drivers_total + transferCount,
+          },
         },
       };
 
       return {
-        locations: updated,
+        ...state,
         currentLocation: to,
-        transferDrivers: Math.max(0, state.transferDrivers - transferCount),
+        weeks: {
+          ...state.weeks,
+          [state.currentWeek]: updatedWeek,
+        },
       };
     });
   };
+
+  if (!locationData) return null;
 
   return (
     <motion.div
@@ -62,11 +77,27 @@ export default function LocationSelector() {
           <option value="montreal">Montreal</option>
         </select>
 
-        <div className="text-gray-600 text-sm">
-          <span className="font-medium text-gray-800">Capacity:</span>{' '}
-          {locations[currentLocation]?.capacity ?? '--'} |{' '}
-          <span className="font-medium text-gray-800">Drivers:</span>{' '}
-          {locations[currentLocation]?.drivers_total ?? '--'}
+        {/* Capacity + Drivers */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1">
+            <span className="font-medium text-gray-800">Capacity:</span>
+            <input
+              type="number"
+              value={locationData.capacity}
+              onChange={(e) => updateCapacity(Number(e.target.value))}
+              className="w-20 border border-gray-300 rounded-md px-2 py-1 text-right text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+            />
+          </div>
+
+          <div className="flex items-center gap-1">
+            <span className="font-medium text-gray-800">Drivers:</span>
+            <input
+              type="number"
+              value={locationData.drivers_total}
+              onChange={(e) => updateDrivers(Number(e.target.value))}
+              className="w-20 border border-gray-300 rounded-md px-2 py-1 text-right text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+            />
+          </div>
         </div>
       </div>
 
@@ -76,7 +107,7 @@ export default function LocationSelector() {
           <span>Driver Transfer:</span>
           <input
             type="number"
-            value={transferDrivers}
+            value={weekData?.transferDrivers ?? 0}
             readOnly
             className="w-20 border border-gray-300 rounded-md px-2 py-1 text-right bg-gray-50 text-gray-700 focus:outline-none"
           />
@@ -84,8 +115,8 @@ export default function LocationSelector() {
 
         <button
           onClick={handleTransfer}
-          disabled={transferDrivers <= 0}
-          className={`font-medium text-sm underline underline-offset-4 transition-all ${transferDrivers > 0
+          disabled={!weekData || weekData.transferDrivers <= 0}
+          className={`font-medium text-sm underline underline-offset-4 transition-all ${weekData && weekData.transferDrivers > 0
               ? 'text-blue-600 hover:text-blue-700'
               : 'text-gray-400 cursor-not-allowed'
             }`}
