@@ -9,6 +9,7 @@ export default function Header() {
   const path = usePathname();
 
   const isPlanning = path.includes('planning');
+  const isWorkOrders = path.includes('work-orders');
   const isActuals = path.includes('actuals');
 
   const { currentWeek, setWeek } = usePlanningStore();
@@ -31,7 +32,7 @@ export default function Header() {
             <h1 className="text-lg font-semibold text-gray-800">
               WEEK {currentWeek} —{' '}
               <span className="text-blue-600">
-                {isPlanning ? 'CAPACITY PLANNING' : 'ACTUALS TRACKING'}
+                {isPlanning ? 'CAPACITY PLANNING' : isWorkOrders ? 'WORK ORDERS' : 'ACTUALS TRACKING'}
               </span>
             </h1>
 
@@ -65,6 +66,8 @@ export default function Header() {
           <p className="text-sm text-gray-500">
             {isPlanning
               ? 'Plan weekly capacities and allocate across customers'
+              : isWorkOrders
+              ? 'Track work orders'
               : 'Track performance and analyze plan vs actual variances'}
           </p>
         </div>
@@ -79,7 +82,17 @@ export default function Header() {
             : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
             }`}
         >
-          Planning
+          Plan
+        </button>
+
+        <button
+          onClick={() => router.push('/work-orders')}
+          className={`px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border ${isWorkOrders
+            ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+            }`}
+        >
+          Work Order
         </button>
 
         <button
@@ -89,7 +102,7 @@ export default function Header() {
             : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
             }`}
         >
-          Actuals
+          Actual
         </button>
 
         <button

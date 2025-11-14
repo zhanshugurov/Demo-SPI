@@ -19,17 +19,19 @@ export default function PlanningTable() {
 
   const totals = customers.reduce(
     (a, c) => ({
+      forecast: a.forecast + c.forecast,
       vol: a.vol + c.vol,
       init: a.init + c.init,
       mon: a.mon + c.mon,
       wed: a.wed + c.wed,
       fri: a.fri + c.fri,
     }),
-    { vol: 0, init: 0, mon: 0, wed: 0, fri: 0 }
+    { forecast: 0, vol: 0, init: 0, mon: 0, wed: 0, fri: 0 }
   );
 
   const [newCustomer, setNewCustomer] = useState({
     name: '',
+    forecast: 0,
     vol: 0,
     init: 0,
     mon: 0,
@@ -54,7 +56,7 @@ export default function PlanningTable() {
     if (totals.vol + newCustomer.vol > 100)
       return alert('Vol% total cannot exceed 100');
     addCustomer({ ...newCustomer });
-    setNewCustomer({ name: '', vol: 0, init: 0, mon: 0, wed: 0, fri: 0 });
+    setNewCustomer({ name: '', forecast: 0, vol: 0, init: 0, mon: 0, wed: 0, fri: 0 });
   };
 
   return (
@@ -64,6 +66,7 @@ export default function PlanningTable() {
           <thead className="bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700">
             <tr>
               <th className="p-3 text-left font-semibold">Customer</th>
+              <th className="p-3 text-right font-semibold">Forecast</th>
               <th className="p-3 text-right font-semibold">Vol%</th>
               <th className="p-3 text-right font-semibold">Initial</th>
               <th className="p-3 text-right font-semibold">Mon/Tue</th>
@@ -85,7 +88,7 @@ export default function PlanningTable() {
                   />
                 </td>
 
-                {(['vol', 'init', 'mon', 'wed', 'fri'] as const).map((field) => (
+                {(['forecast', 'vol', 'init', 'mon', 'wed', 'fri'] as const).map((field) => (
                   <td key={field} className="p-3 text-right">
                     <input
                       type="number"
@@ -125,7 +128,7 @@ export default function PlanningTable() {
                   className="w-full border border-gray-200 rounded-md p-1 text-sm"
                 />
               </td>
-              {(['vol', 'init', 'mon', 'wed', 'fri'] as const).map((field) => (
+              {(['forecast', 'vol', 'init', 'mon', 'wed', 'fri'] as const).map((field) => (
                 <td key={field} className="p-3 text-right">
                   <input
                     type="number"
@@ -155,6 +158,7 @@ export default function PlanningTable() {
                 }`}
             >
               <td className="p-3">TOTALS</td>
+              <td className="p-3 text-right">{totals.forecast}</td>
               <td className="p-3 text-right">{totals.vol}%</td>
               <td className="p-3 text-right">{totals.init}</td>
               <td className="p-3 text-right">{totals.mon}</td>

@@ -9,6 +9,7 @@ import { persist } from 'zustand/middleware';
 
 export interface Customer {
   name: string;
+  forecast: number;
   vol: number;
   init: number;
   mon: number;
@@ -26,6 +27,7 @@ export interface WeekData {
   locations: Record<'toronto' | 'montreal', LocationData>;
   transferDrivers: number;
   actuals: Record<'toronto' | 'montreal', Customer[]>;
+  workOrders: Record<'toronto' | 'montreal', Customer[]>;
 }
 
 interface PlanningState {
@@ -46,6 +48,9 @@ interface PlanningState {
   setActuals: (actuals: Customer[]) => void;
   updateActual: (index: number, field: keyof Customer, value: string | number) => void;
 
+  setWorkOrders: (workOrder: Customer[]) => void;
+  updateWorkOrder: (index: number, field: keyof Customer, value: string | number) => void;
+
   updateDrivers: (value: number) => void;
   updateCapacity: (value: number) => void;
 }
@@ -55,14 +60,14 @@ interface PlanningState {
 // ======================
 
 const initialCustomersToronto: Customer[] = [
-  { name: 'MAERSK #1', vol: 29, init: 35, mon: 10, wed: 10, fri: 15 },
-  { name: 'CMA #3', vol: 9, init: 11, mon: 4, wed: 4, fri: 3 },
-  { name: 'HL #4', vol: 25, init: 30, mon: 10, wed: 10, fri: 10 },
+  { name: 'MAERSK #1', forecast: 40, vol: 29, init: 35, mon: 10, wed: 10, fri: 15 },
+  { name: 'CMA #3', forecast: 20, vol: 9, init: 11, mon: 4, wed: 4, fri: 3 },
+  { name: 'HL #4', forecast: 37, vol: 25, init: 30, mon: 10, wed: 10, fri: 10 },
 ];
 
 const initialCustomersMontreal: Customer[] = [
-  { name: 'MSC #1', vol: 18, init: 22, mon: 6, wed: 6, fri: 10 },
-  { name: 'EVERGREEN #2', vol: 7, init: 9, mon: 3, wed: 3, fri: 3 },
+  { name: 'MSC #1', forecast: 25, vol: 18, init: 22, mon: 6, wed: 6, fri: 10 },
+  { name: 'EVERGREEN #2', forecast: 12, vol: 7, init: 9, mon: 3, wed: 3, fri: 3 },
 ];
 
 // создаем WeekData сразу с actuals, равными плану
@@ -73,6 +78,10 @@ const defaultWeekData: WeekData = {
     montreal: { capacity: 0, drivers_total: 0, customers: [] },
   },
   actuals: {
+    toronto: JSON.parse(JSON.stringify([])),
+    montreal: JSON.parse(JSON.stringify([])),
+  },
+  workOrders: {
     toronto: JSON.parse(JSON.stringify([])),
     montreal: JSON.parse(JSON.stringify([])),
   },
@@ -93,6 +102,10 @@ const initialWeek32: WeekData = {
     },
   },
   actuals: {
+    toronto: JSON.parse(JSON.stringify(initialCustomersToronto)),
+    montreal: JSON.parse(JSON.stringify(initialCustomersMontreal)),
+  },
+  workOrders: {
     toronto: JSON.parse(JSON.stringify(initialCustomersToronto)),
     montreal: JSON.parse(JSON.stringify(initialCustomersMontreal)),
   },
@@ -146,6 +159,10 @@ export const usePlanningStore = create<PlanningState>()(
             ...week.actuals,
             [currentLocation]: JSON.parse(JSON.stringify(customers)),
           },
+          workOrders: {
+            ...week.workOrders,
+            [currentLocation]: JSON.parse(JSON.stringify(customers)),
+          },
         };
 
         set({
@@ -171,6 +188,10 @@ export const usePlanningStore = create<PlanningState>()(
             ...week.actuals,
             [currentLocation]: JSON.parse(JSON.stringify(newCustomers)),
           },
+          workOrders: {
+            ...week.workOrders,
+            [currentLocation]: JSON.parse(JSON.stringify(newCustomers)),
+          },
         };
 
         set({
@@ -184,6 +205,7 @@ export const usePlanningStore = create<PlanningState>()(
 
         const newCustomers = week.locations[currentLocation].customers.filter((_, i) => i !== index);
         const newActuals = week.actuals[currentLocation].filter((_, i) => i !== index);
+        const newWorkOrders = week.workOrders[currentLocation].filter((_, i) => i !== index);
 
         set({
           weeks: {
@@ -200,6 +222,10 @@ export const usePlanningStore = create<PlanningState>()(
               actuals: {
                 ...week.actuals,
                 [currentLocation]: newActuals,
+              },
+              workOrders: {
+                ...week.workOrders,
+                [currentLocation]: newWorkOrders,
               },
             },
           },
@@ -256,6 +282,38 @@ export const usePlanningStore = create<PlanningState>()(
             [currentWeek]: {
               ...week,
               actuals: { ...week.actuals, [currentLocation]: updated },
+            },
+          },
+        });
+      },
+
+      setWorkOrders: (workOrders) => {
+        const { currentWeek, currentLocation, weeks } = get();
+        const week = weeks[currentWeek];
+        set({
+          weeks: {
+            ...weeks,
+            [currentWeek]: {
+              ...week,
+              workOrders: { ...week.workOrders, [currentLocation]: workOrders },
+            },
+          },
+        });
+      },
+
+      updateWorkOrder: (index, field, value) => {
+        const { currentWeek, currentLocation, weeks } = get();
+        const week = weeks[currentWeek];
+        const workOrders = week.workOrders[currentLocation] || [];
+        const updated = [...workOrders];
+        updated[index] = { ...updated[index], [field]: value };
+
+        set({
+          weeks: {
+            ...weeks,
+            [currentWeek]: {
+              ...week,
+              workOrders: { ...week.workOrders, [currentLocation]: updated },
             },
           },
         });
