@@ -66,7 +66,7 @@ export default function PlanningTable() {
           <thead className="bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700">
             <tr>
               <th className="p-3 text-left font-semibold">Customer</th>
-              <th className="p-3 text-right font-semibold">Forecast</th>
+              <th className="p-3 text-right font-semibold">Customer Forecast</th>
               <th className="p-3 text-right font-semibold">Vol%</th>
               <th className="p-3 text-right font-semibold">Initial</th>
               <th className="p-3 text-right font-semibold">Mon/Tue</th>
